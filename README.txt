@@ -1,3 +1,6 @@
+PhantomAnalysisGUI is a tool used for the semi-automated analysis of MRI images of a small structural 
+phantom, for the assessment of geometric accuracy in preclinical MRI scanners.
+
 The code requires MATLAB version 2015a or later. Unzip all files in a folder and set the MATLAB current
 directory to this folder or add it to MATLAB search path.
 
