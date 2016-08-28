@@ -49,10 +49,10 @@ function [analyseddimmasks, locationsArray, xdimension, ydimension] =...
 % ydimension         output The estimated distance (in mm) at the vertical
 %                           direction.
 %
-% Last Modified: 02 February 2016
+% Last Modified: 21 July 2016
 % Copyright (c) 2016, Xenios Milidonis
 
-tic % stopwatch measuring elapsed time starts here
+% tic % stopwatch measuring elapsed time starts here
 
 % Create new folder to save analysed images, if required.
 if saveimages == 1
@@ -345,5 +345,5 @@ fprintf(['  Vertical: mean = %7.3f mm, mode = %7.3f mm, '...
 xdimension = horMode;
 ydimension = verMode;
 
-toc % stopwatch measuring elapsed time stops here
+% toc % stopwatch measuring elapsed time stops here
 

@@ -1,35 +1,16 @@
 function varargout = PhantomAnalysisGUI(varargin)
 % PHANTOMANALYSISGUI MATLAB code for PhantomAnalysisGUI.fig
-% This is a GUI used for the analysis of structural MRI data of the LEGO
-% 2x2 phantom. The internal dimensions of the whole phantom and the volume 
-% of the central frustum-shaped compartment can be measured using
-% automatically estimated or manually given parameters on the GUI.
-%
-% Start the GUI:
-% >> PhantomAnalysisGUI
+% This is a GUI used for the automated analysis of MRI images of a small 
+% structural phantom for the assessment of geometric accuracy in 
+% preclinical MRI scanners.
 %
 % Use the GUI:
-% First load a 2D multislice TIFF image by clicking the 'Load Data' button.
-% Input parameters on the right will be automatically estimated; if a text
-% box is empty, fill it appropriately. For measuring the dimensions of the
-% phantom, a single slice or multiple slices can be selected. For measuring
-% the central volume select only the slices covering the corresponding
-% compartment. The tool uses by default Canny edge detection for both
-% analyses, but you can use k-means clustering with 2 or 3 classes (2: one
-% is the background and the other is the phantom; 3: one is background and 
-% the other two represent the phantom (useful when abnormally bright areas 
-% are present)). By clicking the two buttons in the 'Analysis' panel the 
-% tool measures and outputs on the GUI the final results and in MATLAB's 
-% Command Window the measurements for each slice. The estimated boundary 
-% of the phantom is shown in the 'Output Data' figure; the current view can
-% be chosen from the 'Show:' drop-down list ('Overlaid', 'Masks only').
-% 'Save images?' can be selected if you want to save the binary masks in
-% the image's folder.
+% Please see the README text file.
 %
 % Edit the GUI:
 % >> guide
 % 
-% Last Modified: 11 February 2016
+% Last Modified: 11 August 2016
 % Copyright (c) 2016, Xenios Milidonis
 
 % Begin initialization code - DO NOT EDIT
@@ -127,7 +108,6 @@ global vol;
 global volaligned;
 global voladjusted;
 global maxvaluevol;
-% global level; % for testing simple thresholding
 
 warning('off', 'all')
 
@@ -148,19 +128,7 @@ set(handles.text_imagename, 'String', imagepath);
 % will be passed to slider_inputslices and uipanel_plot to plot the 
 % histogram of the original data.
 vol = stacktomatrix(imagepath);
-    
-% [pixelcounts, greylevels] = imhist(vol(:), 500); % for testing simple thresholding
-% [~, maxindex] = max(pixelcounts); 
-% if maxindex == 1 
-%     pixelcounts(1) = 0;
-%     [~, maxindex] = max(pixelcounts);
-% end
-% if maxindex == 500 
-%     pixelcounts(500) = 0;
-%     [~, maxindex] = max(pixelcounts);
-% end
-% level = 5 * greylevels(maxindex);
-    
+     
 % Call identifyslice.m to find the first, central and last slice.
 [firstslice, centralslice, lastslice] = identifyslice(vol);
 central = vol(:, :, centralslice);
@@ -263,7 +231,8 @@ set(handles.radiobutton_slice, 'Value', 0);
 maxvaluevol = max(vol(:));
 axes(handles.axes_histogram);
 imhist(vol(:), 500);
-axis([0 maxvaluevol 0 inf]) % show grayscale values up to the max value.
+axis([0 maxvaluevol 0 inf])
+set(handles.axes_histogram, 'FontSize', 7);
 
 % Set the image resolution, if found in the header.
 if isfield(info(1), 'XResolution') && ~isempty(info(1).XResolution)
@@ -316,6 +285,7 @@ if histogrambutton == 1
     maxvalueslice = max(max(vol(:, :, sliderslice)));
     imhist(vol(:, :, sliderslice), 500);
     axis([0 maxvalueslice 0 inf])
+    set(handles.axes_histogram, 'FontSize', 7);
 end
 
 % Show the slice number in text_inputslicenumber
@@ -346,6 +316,7 @@ axes(handles.axes_histogram);
 if strcmp(histogrambutton, 'radiobutton_stack')
     imhist(vol(:), 500);
     axis([0 maxvaluevol 0 inf])
+    set(handles.axes_histogram, 'FontSize', 7);
 end
 
 % INDIVIDUAL BUTTONS OF A BUTTON GROUP MUST NOT BE CODED
@@ -507,39 +478,20 @@ axes(handles.axes_outputimage);
 if showvalue == 2  % masks only
     imshow(analyseddimmasks(:, :, 1));
 else               % overlaid
-%     switch plane
-%     case {'Axial', 'Coronal', 'Coronal90', 'Sagittal90'}
-        imshow(voladjusted(:, :, ni));
-        red = cat(3, ones(size(voladjusted(:, :, ni))),...
-            zeros(size(voladjusted(:, :, ni))),...
-            zeros(size(voladjusted(:, :, ni))));
+    imshow(voladjusted(:, :, ni));
+    red = cat(3, ones(size(voladjusted(:, :, ni))),...
+        zeros(size(voladjusted(:, :, ni))),...
+        zeros(size(voladjusted(:, :, ni))));
+    hold on
+    h = imshow(red);
+    hold off
+    set(h, 'AlphaData', analyseddimmasks(:, :, 1));
+    for i = 1:16
         hold on
-        h = imshow(red);
+        plot(locationsArray(i, 2, 1), locationsArray(i, 1, 1),...
+            'xg', 'MarkerSize', 8);
         hold off
-        set(h, 'AlphaData', analyseddimmasks(:, :, 1));
-        for i = 1:16
-            hold on
-            plot(locationsArray(i, 2, 1), locationsArray(i, 1, 1),...
-                'xg', 'MarkerSize', 8);
-            hold off
-        end
-%     case {'Axial90', 'Sagittal'}
-%         voladjustedrotated = imrotate(voladjusted(:, :, ni), -90);
-%         imshow(voladjustedrotated);
-%         red = cat(3, ones(size(voladjustedrotated)),...
-%             zeros(size(voladjustedrotated)),...
-%             zeros(size(voladjustedrotated)));
-%         hold on
-%         h = imshow(red);
-%         hold off
-%         set(h, 'AlphaData', analyseddimmasks(:, :, 1));
-%         for i = 1:16
-%             hold on
-%             plot(locationsArray(i, 2, 1), locationsArray(i, 1, 1),...
-%                 'xg', 'MarkerSize', 8);
-%             hold off
-%         end
-%     end
+    end
 end
 set(handles.axes_outputimage, 'XTick', []);
 set(handles.axes_outputimage, 'YTick', []);
@@ -560,8 +512,10 @@ end
 
 % Output to GUI's log window.
 oldmsgs = cellstr(get(handles.listbox_log, 'String'));
-newmsgx = sprintf('Horizontal dimension: %8.3f mm', xdimension);
-newmsgy = sprintf('Vertical dimension:   %8.3f mm', ydimension);
+newmsgx = sprintf('%s: %8.3f mm horizontally', method, xdimension);
+newmsgy = sprintf('%s: %8.3f mm vertically', method, ydimension);
+newmsgx = ['<HTML><FONT color = "blue"><b>', newmsgx]; % make it bold blue
+newmsgy = ['<HTML><FONT color = "blue"><b>', newmsgy]; % make it bold blue
 set(handles.listbox_log, 'String', [oldmsgs; newmsgx; newmsgy]);
 logsize = size(get(handles.listbox_log, 'String'), 1);
 set(handles.listbox_log, 'Value', logsize);
@@ -580,7 +534,6 @@ global volaligned;
 global voladjusted;
 global analysedvolmasks;
 global outlinevolmasks;
-% global level;
 
 % Get all required parameter values. If a value is not given, make the
 % corresponding GUI field red.
@@ -655,11 +608,6 @@ end
     slicethickness, centralslice, ni, nf, thresholdf, sigma,...
     saveimages, method);
 
-% [analysedvolmasks, volume] = phantomvolumeT...
-%     (imagename, imagefolder, volaligned, plane, hpixsize, vpixsize,...
-%     slicethickness, centralslice, ni, nf, level,...
-%     saveimages);
-
 % Set the calculated volume in the respective edit box.
 set(handles.text_volume, 'String', volume);
 
@@ -672,27 +620,14 @@ axes(handles.axes_outputimage);
 if showvalue == 2  % masks only
     imshow(analysedvolmasks(:, :, 1));
 else               % overlaid
-%     switch plane
-%     case {'Axial', 'Coronal', 'Coronal90', 'Sagittal90'}
-        imshow(voladjusted(:, :, ni));
-        red = cat(3, ones(size(voladjusted(:, :, ni))),...
-            zeros(size(voladjusted(:, :, ni))),...
-            zeros(size(voladjusted(:, :, ni))));
-        hold on
-        h = imshow(red);
-        hold off
-        set(h, 'AlphaData', outlinevolmasks(:, :, 1));
-%     case {'Axial90', 'Sagittal'}
-%         voladjustedrotated = imrotate(voladjusted(:, :, ni), -90);
-%         imshow(voladjustedrotated);
-%         red = cat(3, ones(size(voladjustedrotated)),...
-%             zeros(size(voladjustedrotated)),...
-%             zeros(size(voladjustedrotated)));
-%         hold on
-%         h = imshow(red);
-%         hold off
-%         set(h, 'AlphaData', outlinevolmasks(:, :, 1));
-%     end
+    imshow(voladjusted(:, :, ni));
+    red = cat(3, ones(size(voladjusted(:, :, ni))),...
+        zeros(size(voladjusted(:, :, ni))),...
+        zeros(size(voladjusted(:, :, ni))));
+    hold on
+    h = imshow(red);
+    hold off
+    set(h, 'AlphaData', outlinevolmasks(:, :, 1));
 end
 set(handles.axes_outputimage, 'XTick', []);
 set(handles.axes_outputimage, 'YTick', []);
@@ -713,7 +648,8 @@ end
 
 % Output to GUI's log window.
 oldmsgs = cellstr(get(handles.listbox_log, 'String'));
-newmsg = sprintf('Volume: %9.3f mm^3', volume);
+newmsg = sprintf('%s: %9.3f mm^3', method, volume);
+newmsg = ['<HTML><FONT color = "blue"><b>', newmsg]; % make it bold blue
 set(handles.listbox_log, 'String', [oldmsgs; newmsg] );
 logsize = size(get(handles.listbox_log, 'String'), 1);
 set(handles.listbox_log, 'Value', logsize);
@@ -729,11 +665,6 @@ global analysedvolmasks;
 global outlinevolmasks;
 global locationsArray;
 
-% Get the plane.
-planevalue = get(handles.popup_plane, 'Value');
-planestring = get(handles.popup_plane, 'String');
-plane = planestring{planevalue};
-
 % Get the number of the first analysed slice.
 ni = str2double(get(handles.text_firstslice, 'String'));
 
@@ -748,63 +679,31 @@ axes(handles.axes_outputimage);
 if (actionvalue == 1) && (showvalue == 2)      % masks only
     imshow(analyseddimmasks(:, :, sliderslice-ni+1));
 elseif (actionvalue == 1) && (showvalue == 1)  % overlaid
-%     switch plane
-%     case {'Axial', 'Coronal', 'Coronal90', 'Sagittal90'}
-        imshow(voladjusted(:, :, sliderslice));
-        red = cat(3, ones(size(voladjusted(:, :, sliderslice))),...
-            zeros(size(voladjusted(:, :, sliderslice))),...
-            zeros(size(voladjusted(:, :, sliderslice))));
+    imshow(voladjusted(:, :, sliderslice));
+    red = cat(3, ones(size(voladjusted(:, :, sliderslice))),...
+        zeros(size(voladjusted(:, :, sliderslice))),...
+        zeros(size(voladjusted(:, :, sliderslice))));
+    hold on
+    h = imshow(red);
+    hold off
+    set(h, 'AlphaData', analyseddimmasks(:, :, sliderslice-ni+1));
+    for i = 1:16
         hold on
-        h = imshow(red);
+        plot(locationsArray(i, 2, sliderslice-ni+1),...
+            locationsArray(i, 1, sliderslice-ni+1), 'xg', 'MarkerSize', 8);
         hold off
-        set(h, 'AlphaData', analyseddimmasks(:, :, sliderslice-ni+1));
-        for i = 1:16
-            hold on
-            plot(locationsArray(i, 2, sliderslice-ni+1),...
-                locationsArray(i, 1, sliderslice-ni+1), 'xg', 'MarkerSize', 8);
-            hold off
-        end
-%     case {'Axial90', 'Sagittal'}
-%         voladjustedrotated = imrotate(voladjusted(:, :, sliderslice), -90);
-%         imshow(voladjustedrotated);
-%         red = cat(3, ones(size(voladjustedrotated)),...
-%             zeros(size(voladjustedrotated)),...
-%             zeros(size(voladjustedrotated)));
-%         hold on
-%         h = imshow(red);
-%         hold off
-%         set(h, 'AlphaData', analyseddimmasks(:, :, sliderslice-ni+1));
-%         for i = 1:16
-%             hold on
-%             plot(locationsArray(i, 2, sliderslice-ni+1),...
-%                 locationsArray(i, 1, sliderslice-ni+1), 'xg', 'MarkerSize', 8);
-%             hold off
-%         end        
-%     end
+    end
 elseif (actionvalue == 0) && (showvalue == 2)  % masks only
     imshow(analysedvolmasks(:, :, sliderslice-ni+1));
 elseif (actionvalue == 0) && (showvalue == 1)  % overlaid
-%     switch plane
-%     case {'Axial', 'Coronal', 'Coronal90', 'Sagittal90'}
-        imshow(voladjusted(:, :, sliderslice));
-        red = cat(3, ones(size(voladjusted(:, :, sliderslice))),...
-            zeros(size(voladjusted(:, :, sliderslice))),...
-            zeros(size(voladjusted(:, :, sliderslice))));
-        hold on
-        h = imshow(red);
-        hold off
-        set(h, 'AlphaData', outlinevolmasks(:, :, sliderslice-ni+1));
-%     case {'Axial90', 'Sagittal'}
-%         voladjustedrotated = imrotate(voladjusted(:, :, sliderslice), -90);
-%         imshow(voladjustedrotated);
-%         red = cat(3, ones(size(voladjustedrotated)),...
-%             zeros(size(voladjustedrotated)),...
-%             zeros(size(voladjustedrotated)));
-%         hold on
-%         h = imshow(red);
-%         hold off
-%         set(h, 'AlphaData', outlinevolmasks(:, :, sliderslice-ni+1));
-%     end
+    imshow(voladjusted(:, :, sliderslice));
+    red = cat(3, ones(size(voladjusted(:, :, sliderslice))),...
+        zeros(size(voladjusted(:, :, sliderslice))),...
+        zeros(size(voladjusted(:, :, sliderslice))));
+    hold on
+    h = imshow(red);
+    hold off
+    set(h, 'AlphaData', outlinevolmasks(:, :, sliderslice-ni+1));
 end
 set(handles.axes_outputimage, 'XTick', []);
 set(handles.axes_outputimage, 'YTick', []);

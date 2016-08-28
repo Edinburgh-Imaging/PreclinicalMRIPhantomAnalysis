@@ -47,7 +47,7 @@ function [analysedvolmasks, volume] = phantomvolume...
 % Last Modified: 02 February 2016
 % Copyright (c) 2016, Xenios Milidonis
 
-tic % stopwatch measuring elapsed time starts here
+% tic % stopwatch measuring elapsed time starts here
 
 % Create new folder to save analysed images, if required.
 if saveimages == 1
@@ -303,5 +303,5 @@ volume = volumeinpixels * hpixsize * vpixsize * slicethickness;
 fprintf('%9s %15d\n', 'Total', volumeinpixels);
 fprintf('%9s %15.3f\n', 'In mm^3', volume);
 
-toc % stopwatch measuring elapsed time stops here
+% toc % stopwatch measuring elapsed time stops here
 
